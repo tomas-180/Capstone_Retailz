@@ -61,6 +61,12 @@ logging.getLogger('werkzeug').setLevel(logging.INFO)
 
 db_lock = Lock()
 
+
+forecast_requests_count = 0
+actual_requests_count = 0
+
+
+
 # === Load Models and Data ===
 with open('columns_novas.json') as f:
     columns = json.load(f)
@@ -182,17 +188,24 @@ def gerar_features(sku, time_key):
         'week_of_year': week_of_year
     }])
 
+forecast_requests_count = 0
+actual_requests_count = 0
+
 @app.route('/forecast_prices/', methods=['POST'])
 @validate_json_forecast
 def forecast_prices():
+    global forecast_requests_count
+    forecast_requests_count += 1  # LOG: contar requests
+    
     payload = request.get_json()
     sku = payload["sku"]
     time_key = payload["time_key"]
     time_key_dt = datetime.datetime.strptime(str(time_key), '%d%m%Y').date()
+    
+    logger.info(f"[forecast_prices] Request #{forecast_requests_count} - SKU: {sku}, time_key: {time_key}")
 
     with db_lock:
         try:
-            # Check if forecast already exists
             PricePrediction.get(
                 (PricePrediction.sku == sku) &
                 (PricePrediction.time_key == time_key_dt)
@@ -219,6 +232,8 @@ def forecast_prices():
         except IntegrityError:
             return jsonify({"error": "Forecast already exists for this sku and time_key"}), 422
 
+    logger.info(f"[forecast_prices] Predicted prices - competitorA: {price_A}, competitorB: {price_B}")
+
     return jsonify({
         "sku": sku,
         "time_key": time_key,
@@ -229,10 +244,19 @@ def forecast_prices():
 @app.route("/actual_prices/", methods=["POST"])
 @validate_json_forecast
 def actual_prices():
+    global actual_requests_count
+    actual_requests_count += 1  # LOG: contar requests
+
     payload = request.get_json()
     sku = payload["sku"]
     time_key = payload["time_key"]
     time_key_dt = datetime.datetime.strptime(str(time_key), '%d%m%Y').date()
+
+    # Log info dos preços reais recebidos
+    pvp_compA_actual = payload.get("pvp_is_competitorA_actual")
+    pvp_compB_actual = payload.get("pvp_is_competitorB_actual")
+    logger.info(f"[actual_prices] Request #{actual_requests_count} - SKU: {sku}, time_key: {time_key}, "
+                f"pvp_is_competitorA_actual: {pvp_compA_actual}, pvp_is_competitorB_actual: {pvp_compB_actual}")
 
     # Validação campos atual prices no payload
     for key in ["pvp_is_competitorA_actual", "pvp_is_competitorB_actual"]:
@@ -263,6 +287,5 @@ def actual_prices():
         ("pvp_is_competitorA_actual", record.pvp_is_competitorA_actual),
         ("pvp_is_competitorB_actual", record.pvp_is_competitorB_actual),
     ]))
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
