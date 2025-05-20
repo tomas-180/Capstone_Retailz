@@ -90,14 +90,14 @@ def validate_positive_price(price):
 
 def validate_date_format(date_str):
     try:
-        datetime.datetime.strptime(str(date_str), '%d%m%Y')
+        datetime.datetime.strptime(str(date_str), '%Y%m%d')
         return True
     except ValueError:
         return False
 
 def date_not_before_oct_2024(date_str):
     try:
-        date_obj = datetime.datetime.strptime(str(date_str), '%d%m%Y')
+        date_obj = datetime.datetime.strptime(str(date_str), '%Y%m%d')
         cutoff = datetime.datetime(year=2024, month=10, day=1)
         return date_obj >= cutoff
     except Exception:
@@ -144,7 +144,7 @@ def validate_json_forecast(f):
     return wrapper
 
 def gerar_features(sku, time_key):
-    date = datetime.datetime.strptime(str(time_key), '%d%m%Y')
+    date = datetime.datetime.strptime(str(time_key), '%Y%m%d')
     day_of_week, month, year = date.weekday(), date.month, date.year
     week_of_year = date.isocalendar()[1]
     is_weekend = int(day_of_week >= 5)
@@ -200,7 +200,7 @@ def forecast_prices():
     payload = request.get_json()
     sku = payload["sku"]
     time_key = payload["time_key"]
-    time_key_dt = datetime.datetime.strptime(str(time_key), '%d%m%Y').date()
+    time_key_dt = datetime.datetime.strptime(str(time_key), '%Y%m%d').date()
     
     logger.info(f"[forecast_prices] Request #{forecast_requests_count} - SKU: {sku}, time_key: {time_key}")
 
@@ -250,7 +250,7 @@ def actual_prices():
     payload = request.get_json()
     sku = payload["sku"]
     time_key = payload["time_key"]
-    time_key_dt = datetime.datetime.strptime(str(time_key), '%d%m%Y').date()
+    time_key_dt = datetime.datetime.strptime(str(time_key), '%Y%m%d').date()
 
     # Log info dos preços reais recebidos
     pvp_compA_actual = payload.get("pvp_is_competitorA_actual")
