@@ -125,20 +125,20 @@ def validate_json_forecast(f):
 
             if not isinstance(item['time_key'], int):
                 logger.warning(f"Tipo inválido para time_key: deve ser integer")
-                return jsonify({'error': 'Invalid type: time_key must be integer (ddmmyyyy format without quotes)'}), 422
+                return jsonify({'error': 'Invalid type: time_key must be integer (yyyymmdd format without quotes)'}), 422
 
             time_key_str = str(item['time_key'])
             if len(time_key_str) != 8 or not time_key_str.isdigit():
                 logger.warning(f"Formato inválido para time_key: {item['time_key']}")
-                return jsonify({'error': 'time_key must be 8 digits (ddmmyyyy format as integer)'}), 422
+                return jsonify({'error': 'time_key must be 8 digits (yyyymmdd format as integer)'}), 422
             
             if not validate_date_format(time_key_str):
                 logger.warning(f"Formato inválido de time_key: {time_key_str}")
-                return jsonify({'error': 'Invalid time_key format. Expected ddmmyyyy.'}), 422
+                return jsonify({'error': 'Invalid time_key format. Expected yyyymmdd.'}), 422
 
             if not date_not_before_oct_2024(time_key_str):
-                logger.warning(f"time_key antes de 01/10/2024: {item['time_key']}")
-                return jsonify({'error': 'time_key must be on or after 01/10/2024'}), 422
+                logger.warning(f"time_key antes de 2024/10/01: {item['time_key']}")
+                return jsonify({'error': 'time_key must be on or after 2024/10/01'}), 422
 
         return f(*args, **kwargs)
     return wrapper
@@ -160,7 +160,7 @@ def gerar_features(sku, time_key):
     print(f"Mapa SKU keys sample: {list(mapa_sku.keys())[:10]}")
 
     if sku_key not in mapa_sku:
-        raise ValueError(f"SKU '{sku_key}' not found in structure map.")
+        raise ValueError(f"SKU '{sku_key}' not found in Database.")
 
     struct = mapa_sku[sku_key]
     print(f"Found structure: {struct}")
